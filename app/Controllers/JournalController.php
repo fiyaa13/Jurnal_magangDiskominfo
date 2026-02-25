@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\JournalModel;
+use Dompdf\Dompdf;
+
 
 class JournalController extends BaseController
 {
@@ -18,6 +20,11 @@ class JournalController extends BaseController
     // =========================
     public function index()
     {
+        // Proteksi role
+        if (session()->get('role') !== 'mahasiswa') {
+            return redirect()->to('/dashboard');
+        }
+
         $data['journals'] = $this->journal
             ->where('user_id', session()->get('id'))
             ->orderBy('tanggal', 'ASC')
@@ -49,12 +56,12 @@ class JournalController extends BaseController
         }
 
         $this->journal->insert([
-            'user_id'   => session()->get('id'),
-            'minggu'    => ceil(date('j', strtotime($tanggal)) / 7),
-            'tanggal'   => $tanggal,
-            'hari'      => date('l', strtotime($tanggal)),
-            'deskripsi' => $this->request->getPost('deskripsi'),
-            'status'    => 'pending',
+            'user_id'     => session()->get('id'),
+            'minggu'      => ceil(date('j', strtotime($tanggal)) / 7),
+            'tanggal'     => $tanggal,
+            'hari'        => date('l', strtotime($tanggal)),
+            'deskripsi'   => $this->request->getPost('deskripsi'),
+            'status'      => 'pending',
             'mentor_note' => null
         ]);
 
@@ -69,12 +76,18 @@ class JournalController extends BaseController
     {
         $journal = $this->journal->find($id);
 
-        if (!$journal || $journal['user_id'] != session()->get('id')) {
+        if (! $journal || $journal['user_id'] != session()->get('id')) {
             return redirect()->to('/journal')
                 ->with('error', 'Akses ditolak');
         }
 
-        return view('journal/edit', compact('journal'));
+        // Hanya boleh edit jika masih pending
+        if ($journal['status'] !== 'pending') {
+            return redirect()->to('/journal')
+                ->with('error', 'Jurnal yang sudah diproses tidak bisa diedit');
+        }
+
+        return view('journal/edit', ['journal' => $journal]);
     }
 
     // =========================
@@ -84,14 +97,19 @@ class JournalController extends BaseController
     {
         $journal = $this->journal->find($id);
 
-        if (!$journal || $journal['user_id'] != session()->get('id')) {
+        if (! $journal || $journal['user_id'] != session()->get('id')) {
             return redirect()->to('/journal')
                 ->with('error', 'Akses ditolak');
         }
 
+        if ($journal['status'] !== 'pending') {
+            return redirect()->to('/journal')
+                ->with('error', 'Jurnal tidak bisa diubah');
+        }
+
         $this->journal->update($id, [
-            'deskripsi' => $this->request->getPost('deskripsi'),
-            'status'    => 'pending', // reset saat diedit
+            'deskripsi'   => $this->request->getPost('deskripsi'),
+            'status'      => 'pending',
             'mentor_note' => null
         ]);
 
@@ -106,14 +124,46 @@ class JournalController extends BaseController
     {
         $journal = $this->journal->find($id);
 
-        if (!$journal || $journal['user_id'] != session()->get('id')) {
+        if (! $journal || $journal['user_id'] != session()->get('id')) {
             return redirect()->to('/journal')
                 ->with('error', 'Akses ditolak');
+        }
+
+        if ($journal['status'] !== 'pending') {
+            return redirect()->to('/journal')
+                ->with('error', 'Jurnal tidak bisa dihapus');
         }
 
         $this->journal->delete($id);
 
         return redirect()->to('/journal')
             ->with('success', 'Jurnal berhasil dihapus');
+    }
+
+public function downloadPdf()
+    {
+        if (session()->get('role') !== 'mahasiswa') {
+            return redirect()->to('/dashboard');
+        }
+
+        $journals = $this->journal
+            ->where('user_id', session()->get('id'))
+            ->orderBy('tanggal', 'ASC')
+            ->findAll();
+
+        $html = view('journal/pdf', [
+            'nama'     => session()->get('name'),
+            'journals' => $journals
+        ]);
+
+        $dompdf = new Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+
+        return $dompdf->stream(
+            'jurnal-magang.pdf',
+            ['Attachment' => true]
+        );
     }
 }

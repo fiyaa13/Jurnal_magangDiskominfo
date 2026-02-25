@@ -69,4 +69,34 @@ class MentorController extends BaseController
 
     return view('mentor/history', $data);
 }
+public function mahasiswa()
+{
+    $this->protectMentor();
+
+    $userModel = new UserModel();
+
+    $keyword = $this->request->getGet('q');
+
+    $userModel->where('role', 'mahasiswa');
+
+    if ($keyword) {
+        $userModel->like('name', $keyword);
+    }
+
+    $data['mahasiswa'] = $userModel->findAll();
+    $data['keyword']   = $keyword;
+
+    return view('mentor/mahasiswa', $data);
+}
+public function detailMahasiswa($userId)
+{
+    $this->protectMentor();
+
+    $data['journals'] = $this->journal
+        ->where('user_id', $userId)
+        ->orderBy('tanggal', 'ASC')
+        ->findAll();
+
+    return view('mentor/jurnal_mahasiswa', $data);
+}
 }

@@ -64,4 +64,9 @@
 </table>
 
 <br>
+<a href="<?= base_url('journal/download/pdf') ?>">
+    📄 Download Jurnal (PDF)
+</a>
+
+<br><br>
 <a href="<?= base_url('dashboard') ?>">⬅️ Kembali ke Dashboard</a>
