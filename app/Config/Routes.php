@@ -77,4 +77,5 @@ $routes->group('mentor', ['filter' => ['auth', 'role:mentor']], function ($route
 
     $routes->post('journal/approve/(:num)', 'MentorController::approve/$1');
     $routes->post('journal/reject/(:num)', 'MentorController::reject/$1');
+    $routes->get('dashboard/mentor', 'DashboardController::mentor');
 });

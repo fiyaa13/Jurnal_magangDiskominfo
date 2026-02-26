@@ -55,4 +55,23 @@ class DashboardController extends BaseController
             'profile' => $profile
         ]);
     }
+    public function mentor()
+{
+    // proteksi role
+    if (session()->get('role') !== 'mentor') {
+        return redirect()->to('/dashboard');
+    }
+
+    $userId = session()->get('id');
+
+    $mentorProfileModel = new MentorProfileModel();
+
+    $mentor = $mentorProfileModel
+        ->where('user_id', $userId)
+        ->first();
+
+    return view('dashboard/mentor', [
+        'mentor' => $mentor
+    ]);
+}
 }

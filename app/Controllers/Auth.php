@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\UserModel;
 use App\Models\MahasiswaProfileModel;
+use App\Models\MentorProfileModel;
 
 class Auth extends BaseController
 {
@@ -77,28 +78,51 @@ class Auth extends BaseController
         ->with('success', 'Registrasi mahasiswa berhasil');
 }
 
-    // ================= REGISTER MENTOR =================
+    // ================= FORM REGISTER MENTOR =================
+// ================= FORM REGISTER MENTOR =================
     public function registerMentor()
     {
         return view('auth/register_mentor');
     }
 
+    // ================= SIMPAN REGISTER MENTOR =================
     public function saveMentor()
     {
-        $userModel = new UserModel();
+        $db = \Config\Database::connect();
+        $db->transStart();
 
-        $userModel->insert([
-            'name'     => $this->request->getPost('name'),
-            'email'    => $this->request->getPost('email'),
-            'password' => password_hash(
-                $this->request->getPost('password'),
-                PASSWORD_DEFAULT
-            ),
-            'role'     => 'mentor',
-        ]);
+        try {
+            // simpan ke users
+            $userModel = new UserModel();
+            $userId = $userModel->insert([
+                'name'     => $this->request->getPost('nama'),
+                'email'    => $this->request->getPost('email'),
+                'password' => password_hash(
+                    $this->request->getPost('password'),
+                    PASSWORD_DEFAULT
+                ),
+                'role' => 'mentor'
+            ]);
 
-        return redirect()->to('/login')
-            ->with('success', 'Registrasi mentor berhasil');
+            // simpan ke mentor_profiles
+            $profileModel = new MentorProfileModel();
+            $profileModel->insert([
+                'user_id' => $userId,
+                'nama'    => $this->request->getPost('nama'),
+                'nip'     => $this->request->getPost('nip'),
+                'jabatan' => $this->request->getPost('jabatan'),
+                'bidang'  => $this->request->getPost('bidang'),
+            ]);
+
+                        $db->transComplete();
+
+            return redirect()->to('/login')
+                ->with('success', 'Registrasi mentor berhasil');
+        } catch (\Throwable $e) {
+            $db->transRollback();
+            return redirect()->back()
+                ->with('error', $e->getMessage());
+        }
     }
 
     // ================= LOGOUT =================

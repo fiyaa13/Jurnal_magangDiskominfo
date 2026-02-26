@@ -1,5 +1,24 @@
 <h2>Jurnal Magang Saya</h2>
+<div style="display:flex; gap:15px; margin-bottom:20px;">
+    <div>
+        <strong>Total Jurnal</strong><br>
+        <?= $totalJurnal ?>
+    </div>
+    <div>
+        <strong>Pending</strong><br>
+        <?= $totalPending ?>
+    </div>
+    <div>
+        <strong>Disetujui</strong><br>
+        <?= $totalApproved ?>
+    </div>
+    <div>
+        <strong>Ditolak</strong><br>
+        <?= $totalRejected ?>
+    </div>
+</div>
 
+<hr>
 <a href="<?= base_url('journal/create') ?>">➕ Tambah Jurnal</a>
 
 <br><br>

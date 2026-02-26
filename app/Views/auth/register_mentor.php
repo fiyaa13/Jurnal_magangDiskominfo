@@ -3,7 +3,7 @@
 <form action="<?= base_url('register/mentor') ?>" method="post">
 
     <label>Nama Mentor</label><br>
-    <input type="text" name="name" required><br><br>
+    <input type="text" name="nama" required><br><br>
 
     <label>Email</label><br>
     <input type="email" name="email" required><br><br>

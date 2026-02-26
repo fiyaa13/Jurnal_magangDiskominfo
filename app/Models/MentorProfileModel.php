@@ -11,6 +11,7 @@ class MentorProfileModel extends Model
 
     protected $allowedFields = [
         'user_id',
+        'nama',
         'nip',
         'jabatan',
         'bidang'

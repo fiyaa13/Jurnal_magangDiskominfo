@@ -20,19 +20,45 @@ class JournalController extends BaseController
     // LIST JURNAL MAHASISWA
     // =========================
     public function index()
-    {
-        // Proteksi role
-        if (session()->get('role') !== 'mahasiswa') {
-            return redirect()->to('/dashboard');
-        }
-
-        $data['journals'] = $this->journal
-            ->where('user_id', session()->get('id'))
-            ->orderBy('tanggal', 'ASC')
-            ->findAll();
-
-        return view('journal/index', $data);
+{
+    if (session()->get('role') !== 'mahasiswa') {
+        return redirect()->to('/dashboard');
     }
+
+    $userId = session()->get('id');
+
+    $journals = $this->journal
+        ->where('user_id', $userId)
+        ->orderBy('tanggal', 'ASC')
+        ->findAll();
+
+    $totalJurnal = $this->journal
+        ->where('user_id', $userId)
+        ->countAllResults();
+
+    $totalPending = $this->journal
+        ->where('user_id', $userId)
+        ->where('status', 'pending')
+        ->countAllResults();
+
+    $totalApproved = $this->journal
+        ->where('user_id', $userId)
+        ->where('status', 'approved')
+        ->countAllResults();
+
+    $totalRejected = $this->journal
+        ->where('user_id', $userId)
+        ->where('status', 'rejected')
+        ->countAllResults();
+
+    return view('journal/index', [
+        'journals'      => $journals,
+        'totalJurnal'   => $totalJurnal,
+        'totalPending'  => $totalPending,
+        'totalApproved' => $totalApproved,
+        'totalRejected' => $totalRejected,
+    ]);
+}
 
     // =========================
     // FORM TAMBAH
