@@ -3,6 +3,8 @@
 namespace App\Controllers;
 
 use App\Models\MahasiswaProfileModel;
+use App\Models\JournalModel;
+use App\Models\UserModel;
 
 class DashboardController extends BaseController
 {
@@ -14,7 +16,18 @@ class DashboardController extends BaseController
 
         // DASHBOARD MENTOR
         if (session()->get('role') === 'mentor') {
-            return view('mentor/dashboard');
+             $userModel    = new UserModel();
+            $journalModel = new JournalModel();
+
+            // Ambil daftar mahasiswa + jumlah jurnal
+            $mahasiswa = $userModel
+                ->select('users.id, users.name, COUNT(journals.id) AS total_jurnal')
+                ->join('journals', 'journals.user_id = users.id', 'left')
+                ->where('users.role', 'mahasiswa')
+                ->groupBy('users.id')
+                ->findAll();
+            return view('mentor/dashboard', ['mahasiswa'
+            => $mahasiswa]);
         }
 
         // DASHBOARD MAHASISWA

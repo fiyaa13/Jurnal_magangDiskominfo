@@ -4,18 +4,23 @@
 
 <hr>
 
-<ul>
-    <li>
-        <a href="/mentor/journal">📋 Validasi Jurnal Mahasiswa</a>
-    </li>
+<h3>📋 Daftar Mahasiswa Magang</h3>
 
-    <li>
-        <a href="/mentor/history">🗂 Riwayat Validasi Jurnal</a>
-    </li>
-
-    <li>
-        <a href="/mentor/mahasiswa">👨‍🎓 Daftar Mahasiswa</a>
-    </li>
-</ul>
+<?php if (empty($mahasiswa)) : ?>
+    <p>Belum ada mahasiswa yang mengisi jurnal.</p>
+<?php else : ?>
+    <ul>
+        <?php foreach ($mahasiswa as $mhs) : ?>
+            <li>
+                <strong><?= esc($mhs['name']) ?></strong><br>
+                Total jurnal: <?= $mhs['total_jurnal'] ?><br>
+                <a href="/mentor/journal?user_id=<?= $mhs['id'] ?>">
+                    📘 Lihat Jurnal
+                </a>
+            </li>
+            <hr>
+        <?php endforeach ?>
+    </ul>
+<?php endif ?>
 
 <a href="/logout">🚪 Logout</a>

@@ -19,11 +19,17 @@ class MentorController extends BaseController
         if (session()->get('role') !== 'mentor') {
             return redirect()->to('/dashboard');
         }
+        // 🔑 AMBIL user_id DARI URL
+    $userId = $this->request->getGet('user_id');
+
+    if (! $userId) {
+        return redirect()->to('/dashboard');
+    }
 
         $data['journals'] = $this->journal
             ->select('journals.*, users.name AS nama_mahasiswa')
             ->join('users', 'users.id = journals.user_id')
-            ->where('journals.status', 'pending')
+            ->where('journals.user_id', $userId) 
             ->orderBy('journals.tanggal', 'ASC')
             ->findAll();
 
