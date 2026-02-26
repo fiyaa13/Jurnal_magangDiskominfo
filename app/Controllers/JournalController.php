@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\JournalModel;
 use Dompdf\Dompdf;
+use App\Models\MahasiswaProfileModel;
 
 
 class JournalController extends BaseController
@@ -141,29 +142,46 @@ class JournalController extends BaseController
     }
 
 public function downloadPdf()
-    {
-        if (session()->get('role') !== 'mahasiswa') {
-            return redirect()->to('/dashboard');
-        }
-
-        $journals = $this->journal
-            ->where('user_id', session()->get('id'))
-            ->orderBy('tanggal', 'ASC')
-            ->findAll();
-
-        $html = view('journal/pdf', [
-            'nama'     => session()->get('name'),
-            'journals' => $journals
-        ]);
-
-        $dompdf = new Dompdf();
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-
-        return $dompdf->stream(
-            'jurnal-magang.pdf',
-            ['Attachment' => true]
-        );
+{
+    // proteksi role
+    if (session()->get('role') !== 'mahasiswa') {
+        return redirect()->to('/dashboard');
     }
+
+    $userId = session()->get('id');
+
+    $profileModel = new MahasiswaProfileModel();
+    $journalModel = new JournalModel();
+
+    // ambil profil mahasiswa
+    $profile = $profileModel
+        ->where('user_id', $userId)
+        ->first();
+
+    if (! $profile) {
+        return redirect()->back()->with('error', 'Profil mahasiswa belum lengkap');
+    }
+
+    // ambil jurnal mahasiswa
+    $journals = $journalModel
+        ->where('user_id', $userId)
+        ->orderBy('tanggal', 'ASC')
+        ->findAll();
+
+    // kirim ke view PDF
+    $html = view('journal/pdf', [
+        'profile'  => $profile,
+        'journals' => $journals
+    ]);
+
+    $dompdf = new Dompdf();
+    $dompdf->loadHtml($html);
+    $dompdf->setPaper('A4', 'portrait');
+    $dompdf->render();
+
+    return $dompdf->stream(
+        'jurnal-magang.pdf',
+        ['Attachment' => true]
+    );
+}
 }

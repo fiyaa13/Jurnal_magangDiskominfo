@@ -1,7 +1,10 @@
 <h2>Dashboard Mentor</h2>
 
 <p>Selamat datang, <strong><?= esc(session()->get('name')) ?></strong></p>
-
+<p>
+    <strong>NIP:</strong> <?= esc($mentorProfile['nip'] ?? '-') ?><br>
+    <strong>Jabatan:</strong> <?= esc($mentorProfile['jabatan'] ?? '-') ?><br>
+    <strong>Bidang:</strong> <?= esc($mentorProfile['bidang'] ?? '-') ?>
 <hr>
 
 <h3>📋 Daftar Mahasiswa Magang</h3>

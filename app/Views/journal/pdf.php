@@ -16,7 +16,11 @@
 <h2>JURNAL MAGANG MAHASISWA</h2>
 
 <p>
-    <strong>Nama:</strong> <?= esc($nama) ?><br>
+    <strong>Nama:</strong> <?= esc(session()->get('name')) ?><br>
+    <strong>NIM:</strong> <?= esc($profile['nim'] ?? '-') ?><br>
+    <strong>Asal Universitas:</strong> <?= esc($profile['asal_universitas'] ?? '-') ?><br>
+    <strong>Bidang Magang:</strong> <?= esc($profile['bidang_magang'] ?? '-') ?><br>
+    <strong>Periode Magang:</strong> <?= esc($profile['periode_magang'] ?? '-') ?><br>
     <strong>Tanggal Cetak:</strong> <?= date('d-m-Y') ?>
 </p>
 
