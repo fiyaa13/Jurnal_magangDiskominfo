@@ -44,6 +44,14 @@ $routes->get('logout', 'Auth::logout');
 $routes->get('dashboard', 'DashboardController::index', ['filter' => 'auth']);
 
 // =======================
+// FOTO BUKTI JURNAL
+// Di luar grup 'journal' karena grup itu khusus mahasiswa, sedangkan
+// mentor juga perlu melihat foto. Hak akses dicek di JournalController::bukti()
+// (hanya mentor dan mahasiswa pemilik jurnal).
+// =======================
+$routes->get('journal/bukti/(:num)', 'JournalController::bukti/$1', ['filter' => 'auth']);
+
+// =======================
 // JOURNAL (MAHASISWA)
 // =======================
 $routes->group('journal', ['filter' => ['auth', 'role:mahasiswa']], function ($routes) {

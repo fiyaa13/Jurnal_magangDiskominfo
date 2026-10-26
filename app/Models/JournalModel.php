@@ -10,14 +10,15 @@ class JournalModel extends Model
     protected $primaryKey = 'id';
 
     protected $allowedFields = [
-    'user_id',
-    'minggu',
-    'tanggal',
-    'hari',
-    'deskripsi',
-    'status',
-    'mentor_note'
-];
+        'user_id',
+        'minggu',
+        'tanggal',
+        'hari',
+        'deskripsi',
+        'bukti',
+        'status',
+        'mentor_note',
+    ];
 
     protected $useTimestamps = false;
 }

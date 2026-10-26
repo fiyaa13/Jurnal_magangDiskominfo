@@ -11,7 +11,6 @@ class MahasiswaProfileModel extends Model
 
     protected $allowedFields = [
         'user_id',
-        'nama',
         'nim',
         'asal_universitas',
         'bidang_magang',

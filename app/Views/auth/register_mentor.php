@@ -1,3 +1,4 @@
+<?php $errors = session()->getFlashdata('errors') ?? []; ?>
 <!DOCTYPE html>
 <html lang="id">
 
@@ -743,6 +744,47 @@
     .switch-row a:hover {
       text-decoration: underline;
     }
+
+    /* ── Pesan validasi ── */
+    .form-alert {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 18px;
+      font-size: 13px;
+      font-weight: 500;
+      line-height: 1.5;
+      color: #dc2626;
+    }
+
+    .form-alert svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    form input.is-invalid {
+      border-color: #ef4444 !important;
+      background: #fef2f2 !important;
+    }
+
+    .field-error {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin: -8px 0 14px;
+      font-size: 12px;
+      font-weight: 500;
+      color: #dc2626;
+    }
   </style>
 </head>
 
@@ -881,8 +923,21 @@
           <p><strong>Perhatian:</strong> Akun mentor memerlukan verifikasi admin. Pastikan NIP dan data pegawai sudah benar.</p>
         </div>
 
+        <?php if ($errors || session()->getFlashdata('error')): ?>
+          <div class="form-alert" role="alert">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span><?= esc(session()->getFlashdata('error') ?? 'Periksa kembali isian yang ditandai merah di bawah.') ?></span>
+          </div>
+        <?php endif ?>
+
+
         <!-- FORM ASLI — tidak ada perubahan pada action/name/method -->
         <form action="<?= base_url('register/mentor') ?>" method="post">
+          <?= csrf_field() ?>
 
           <!-- Seksi Data Akun -->
           <div class="sec-div blue">
@@ -900,8 +955,9 @@
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
                 <circle cx="12" cy="7" r="4" />
               </svg></div>
-            <input type="text" name="nama" placeholder="Nama lengkap sesuai data pegawai" required>
-          </div><br>
+            <input <?= isset($errors['nama']) ? 'class="is-invalid" ' : '' ?>type="text" name="nama" value="<?= esc(old('nama'), 'attr') ?>" placeholder="Nama lengkap sesuai data pegawai" required>
+          </div>
+          <?php if (isset($errors['nama'])): ?><p class="field-error"><?= esc($errors['nama']) ?></p><?php endif ?><br>
 
           <label>Email</label><br>
           <div class="iw">
@@ -909,8 +965,9 @@
                 <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
                 <polyline points="22,6 12,13 2,6" />
               </svg></div>
-            <input type="email" name="email" placeholder="email@diskominfo.go.id" required>
-          </div><br>
+            <input <?= isset($errors['email']) ? 'class="is-invalid" ' : '' ?>type="email" name="email" value="<?= esc(old('email'), 'attr') ?>" placeholder="email@diskominfo.go.id" required>
+          </div>
+          <?php if (isset($errors['email'])): ?><p class="field-error"><?= esc($errors['email']) ?></p><?php endif ?><br>
 
           <label>Password</label><br>
           <div class="iw has-toggle">
@@ -918,7 +975,7 @@
                 <rect x="3" y="11" width="18" height="11" rx="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg></div>
-            <input type="password" name="password" id="pw-input" placeholder="Min. 8 karakter" oninput="updateStrength()" required>
+            <input <?= isset($errors['password']) ? 'class="is-invalid" ' : '' ?>type="password" name="password" id="pw-input" placeholder="Min. 8 karakter" oninput="updateStrength()" required>
             <button type="button" class="pw-btn" id="pw-toggle-btn" onclick="togglePw()">
               <svg viewBox="0 0 24 24">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
@@ -926,6 +983,7 @@
               </svg>
             </button>
           </div>
+          <?php if (isset($errors['password'])): ?><p class="field-error"><?= esc($errors['password']) ?></p><?php endif ?>
           <div class="pw-strength">
             <div class="pw-bars">
               <div class="pw-bar" id="b1"></div>
@@ -954,8 +1012,9 @@
                 <rect x="1" y="4" width="22" height="16" rx="2" />
                 <line x1="1" y1="10" x2="23" y2="10" />
               </svg></div>
-            <input type="text" name="nip" placeholder="Nomor Induk Pegawai" required>
-          </div><br>
+            <input <?= isset($errors['nip']) ? 'class="is-invalid" ' : '' ?>type="text" name="nip" value="<?= esc(old('nip'), 'attr') ?>" placeholder="Nomor Induk Pegawai" required>
+          </div>
+          <?php if (isset($errors['nip'])): ?><p class="field-error"><?= esc($errors['nip']) ?></p><?php endif ?><br>
 
           <div class="form-grid-2">
             <div>
@@ -965,8 +1024,9 @@
                     <rect x="2" y="7" width="20" height="14" rx="2" />
                     <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
                   </svg></div>
-                <input type="text" name="jabatan" placeholder="Contoh: Kepala Bidang" required>
-              </div><br>
+                <input <?= isset($errors['jabatan']) ? 'class="is-invalid" ' : '' ?>type="text" name="jabatan" value="<?= esc(old('jabatan'), 'attr') ?>" placeholder="Contoh: Kepala Bidang" required>
+              </div>
+          <?php if (isset($errors['jabatan'])): ?><p class="field-error"><?= esc($errors['jabatan']) ?></p><?php endif ?><br>
             </div>
             <div>
               <label>Bidang</label><br>
@@ -975,8 +1035,9 @@
                     <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
                     <polyline points="9 22 9 12 15 12 15 22" />
                   </svg></div>
-                <input type="text" name="bidang" placeholder="Contoh: Bidang TI" required>
-              </div><br>
+                <input <?= isset($errors['bidang']) ? 'class="is-invalid" ' : '' ?>type="text" name="bidang" value="<?= esc(old('bidang'), 'attr') ?>" placeholder="Contoh: Bidang TI" required>
+              </div>
+          <?php if (isset($errors['bidang'])): ?><p class="field-error"><?= esc($errors['bidang']) ?></p><?php endif ?><br>
             </div>
           </div>
 

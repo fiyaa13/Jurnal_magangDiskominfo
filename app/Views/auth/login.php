@@ -444,50 +444,42 @@
       margin-bottom: 20px;
     }
 
-    /* Flash messages dari PHP */
-    .form-inner p[style*="color:red"],
-    .form-inner p[style*="color: red"] {
-      all: unset;
+    /* Pesan berhasil / gagal */
+    .flash {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       gap: 8px;
-      background: #fef2f2;
-      border: 1px solid #fecaca;
       border-radius: 9px;
       padding: 10px 14px;
       font-size: 13px;
       font-weight: 500;
-      color: var(--danger);
+      line-height: 1.5;
       margin-bottom: 16px;
-      font-family: 'Inter', sans-serif;
     }
 
-    .form-inner p[style*="color:green"],
-    .form-inner p[style*="color: green"] {
-      all: unset;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .flash svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .flash-error {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
+      color: #dc2626;
+    }
+
+    .flash-success {
       background: var(--green-lt);
       border: 1px solid rgba(16, 185, 129, 0.25);
-      border-radius: 9px;
-      padding: 10px 14px;
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--green);
-      margin-bottom: 16px;
-      font-family: 'Inter', sans-serif;
+      color: #047857;
     }
 
     /* Form */
-    form br {
-      display: none;
-    }
-
-    form hr {
-      display: none;
-    }
-
     form label {
       display: block;
       font-size: 12px;
@@ -531,7 +523,7 @@
       padding-right: 42px !important;
     }
 
-    form input[type="email"],
+    form input[type="text"],
     form input[type="password"] {
       width: 100%;
       padding: 11px 14px 11px 40px;
@@ -546,7 +538,7 @@
       transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
     }
 
-    form input[type="email"]:focus,
+    form input[type="text"]:focus,
     form input[type="password"]:focus {
       border-color: var(--blue);
       background: #fff;
@@ -661,13 +653,10 @@
       background: var(--line);
     }
 
-    /* P & A dari PHP — disembunyikan, diganti switch-row */
-    .form-inner>p:not([style]) {
-      display: none;
-    }
-
-    .form-inner>a {
-      display: none;
+    .field-hint {
+      font-size: 12px;
+      color: #7a9bc5;
+      margin: -6px 0 14px;
     }
 
     .switch-row {
@@ -819,38 +808,47 @@
           </div>
         </div>
 
-        <!-- KODE PHP ASLI — tidak ada yang diubah -->
-
         <h2>Login</h2>
         <p class="fh-sub">Masuk untuk mencatat kegiatan magang harianmu</p>
 
         <?php if (session()->getFlashdata('error')): ?>
-          <p style="color:red;">
-            <?= session()->getFlashdata('error') ?>
-          </p>
+          <div class="flash flash-error" role="alert">
+            <svg viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span><?= esc(session()->getFlashdata('error')) ?></span>
+          </div>
         <?php endif ?>
 
         <?php if (session()->getFlashdata('success')): ?>
-          <p style="color:green;">
-            <?= session()->getFlashdata('success') ?>
-          </p>
+          <div class="flash flash-success" role="status">
+            <svg viewBox="0 0 24 24">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <span><?= esc(session()->getFlashdata('success')) ?></span>
+          </div>
         <?php endif ?>
 
-        <form action="/login" method="post">
+        <form action="<?= base_url('login') ?>" method="post">
           <?= csrf_field() ?>
 
-          <label>Email</label><br>
+          <label for="identity">Email atau NIM</label>
           <div class="iw">
             <div class="ico">
               <svg viewBox="0 0 24 24">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                <polyline points="22,6 12,13 2,6" />
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                <circle cx="12" cy="7" r="4" />
               </svg>
             </div>
-            <input type="email" name="email" placeholder="email@kampus.ac.id" required>
-          </div><br>
+            <input type="text" id="identity" name="identity" value="<?= esc(old('identity'), 'attr') ?>"
+              placeholder="email@kampus.ac.id atau NIM" autocomplete="username" autofocus required>
+          </div>
+          <p class="field-hint">Mahasiswa bisa masuk dengan email atau NIM. Mentor masuk dengan email.</p>
 
-          <label>Password</label><br>
+          <label for="pw-input">Password</label>
           <div class="iw has-toggle">
             <div class="ico">
               <svg viewBox="0 0 24 24">
@@ -858,14 +856,14 @@
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />
               </svg>
             </div>
-            <input type="password" name="password" id="pw-input" placeholder="••••••••" required>
-            <button type="button" class="pw-btn" id="pw-toggle-btn" onclick="togglePw()">
+            <input type="password" name="password" id="pw-input" placeholder="••••••••" autocomplete="current-password" required>
+            <button type="button" class="pw-btn" id="pw-toggle-btn" onclick="togglePw()" aria-label="Tampilkan password">
               <svg viewBox="0 0 24 24">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
-          </div><br>
+          </div>
 
           <button type="submit">
             <span>Login</span>
@@ -877,16 +875,9 @@
           </button>
         </form>
 
-        <hr>
-
-        <p>Belum punya akun?</p>
-        <a href="/register">➕ Daftar di sini</a>
-
-        <!-- akhir PHP asli -->
-
         <div class="bottom-divider">atau</div>
         <div class="switch-row">
-          Belum punya akun? <a href="/register">Daftar sekarang</a>
+          Belum punya akun? <a href="<?= base_url('register') ?>">Daftar sekarang</a>
         </div>
 
       </div>

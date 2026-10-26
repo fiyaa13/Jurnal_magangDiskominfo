@@ -1,450 +1,562 @@
+<?php
+/**
+ * Validasi Jurnal Mahasiswa (mentor) — SIAMANG
+ * Variabel dari controller: $journals (tiap baris: id, nama_mahasiswa, tanggal, deskripsi, bukti, status, mentor_note)
+ */
+$journals = $journals ?? [];
+
+// Jurnal yang menunggu ditampilkan paling atas (urutan lain tetap)
+usort($journals, static fn ($a, $b) => ($b['status'] === 'pending') <=> ($a['status'] === 'pending'));
+
+$jumlah = ['all' => count($journals), 'pending' => 0, 'approved' => 0, 'rejected' => 0];
+foreach ($journals as $j) {
+    if (isset($jumlah[$j['status']])) {
+        $jumlah[$j['status']]++;
+    }
+}
+
+// Jika semua jurnal milik satu mahasiswa, namanya jadi judul halaman
+$namaMahasiswa = array_values(array_unique(array_column($journals, 'nama_mahasiswa')));
+$satuMahasiswa = count($namaMahasiswa) === 1 ? $namaMahasiswa[0] : null;
+
+$namaHari  = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+$namaBulan = [1 => 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+$statusInfo = [
+    'pending'  => ['Menunggu', 'badge-pending'],
+    'approved' => ['Disetujui', 'badge-approved'],
+    'rejected' => ['Ditolak', 'badge-rejected'],
+];
+?>
 <!DOCTYPE html>
 <html lang="id">
 
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Validasi Jurnal - Sistem Jurnal Magang</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Validasi Jurnal — SIAMANG</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="<?= base_url('css/siamang.css') ?>">
+  <style>
+    .content svg { fill: none; stroke: currentColor; stroke-width: 2; flex-shrink: 0; }
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+    /* ── Judul ── */
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
 
-        body {
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
-            background-color: #f0f4f8;
-            color: #003366;
-            min-height: 100vh;
-        }
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--white);
+      box-shadow: var(--shadow);
+      color: var(--sub);
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s;
+    }
+    .btn-outline:hover { border-color: var(--blue); background: var(--tint); color: var(--blue); }
+    .btn-outline svg { width: 16px; height: 16px; }
 
-        .navbar {
-            background: linear-gradient(135deg, #003366 0%, #0056B3 100%);
-            padding: 0 40px;
-            height: 70px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            box-shadow: 0 2px 12px rgba(0, 51, 102, 0.15);
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
+    /* ── Tab filter ── */
+    .tabs {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      padding: 4px;
+      margin-bottom: 16px;
+      border-radius: 10px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+    }
+    .tab {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border: none;
+      border-radius: 7px;
+      background: transparent;
+      color: var(--sub);
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tab.active { background: var(--tint); color: var(--navy); }
+    .tab .n {
+      min-width: 20px;
+      padding: 1px 6px;
+      border-radius: 99px;
+      background: var(--border);
+      color: var(--sub);
+      font-size: 11px;
+      text-align: center;
+    }
+    .tab[data-filter="pending"] .n { background: var(--amber); color: #fff; }
 
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
+    /* ── Kartu jurnal ── */
+    .j-list { display: flex; flex-direction: column; gap: 14px; }
 
-        .navbar-logo {
-            width: 38px;
-            height: 38px;
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            backdrop-filter: blur(10px);
-        }
+    .j-card {
+      display: grid;
+      grid-template-columns: 96px 1fr 300px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .j-card[hidden] { display: none; }
+    .j-card.is-pending { border-left: 4px solid var(--amber); }
 
-        .navbar-title {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            color: #FFFFFF;
-            font-size: 18px;
-            font-weight: 700;
-        }
+    .j-date {
+      padding: 18px 12px;
+      text-align: center;
+      background: var(--tint-bg);
+      border-right: 1px solid var(--border);
+    }
+    .j-date .hari { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+    .j-date .tgl { font-family: var(--font-head); font-size: 28px; font-weight: 800; line-height: 1.1; margin: 2px 0; }
+    .j-date .bln { font-size: 13px; color: var(--sub); }
 
-        .navbar-subtitle {
-            color: rgba(255, 255, 255, 0.7);
-            font-size: 12px;
-            margin-top: 1px;
-        }
+    .j-body { padding: 18px 20px; min-width: 0; }
+    .j-name { font-size: 12px; font-weight: 600; color: var(--blue); margin-bottom: 4px; }
+    .j-desc { font-size: 14px; line-height: 1.65; white-space: pre-line; }
 
-        .main-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 32px 24px 60px;
-        }
+    .j-bukti { margin-top: 14px; }
+    .j-label {
+      font-size: 12px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
 
-        /* ===== PAGE HEADER ===== */
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 28px;
-            flex-wrap: wrap;
-            gap: 16px;
-        }
+    .thumb {
+      position: relative;
+      display: block;
+      width: 160px;
+      height: 110px;
+      padding: 0;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--tint-bg);
+      cursor: zoom-in;
+    }
+    .thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform 0.25s; }
+    .thumb:hover img { transform: scale(1.05); }
+    .thumb .zoom {
+      position: absolute;
+      right: 6px;
+      bottom: 6px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      background: rgba(0, 51, 102, 0.75);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+    }
+    .thumb .zoom svg { width: 12px; height: 12px; }
 
-        .page-title {
-            font-family: 'Plus Jakarta Sans', sans-serif;
-            font-size: 24px;
-            font-weight: 800;
-            color: #003366;
-            letter-spacing: -0.4px;
-        }
+    .no-bukti {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      color: var(--muted);
+      font-style: italic;
+    }
+    .no-bukti svg { width: 14px; height: 14px; }
 
-        .btn-back {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 22px;
-            background: #FFFFFF;
-            color: #003366;
-            border: 1px solid #d0ddef;
-            border-radius: 10px;
-            font-size: 14px;
-            font-weight: 500;
-            text-decoration: none;
-            transition: all 0.2s ease;
-        }
+    /* ── Kolom aksi ── */
+    .j-side {
+      padding: 18px 20px;
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
 
-        .btn-back:hover {
-            border-color: #007BFF;
-            color: #007BFF;
-            box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
-        }
+    .badge {
+      align-self: flex-start;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 11px;
+      border-radius: 99px;
+      border: 1px solid;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    .badge-pending  { background: var(--amber-l); border-color: var(--amber-b); color: #92400e; }
+    .badge-approved { background: var(--green-l); border-color: var(--green-b); color: #166534; }
+    .badge-rejected { background: var(--red-l);   border-color: var(--red-b);   color: var(--red-d); }
 
-        .btn-back svg {
-            width: 16px;
-            height: 16px;
-        }
+    .note-box {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--tint-bg);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      line-height: 1.55;
+      white-space: pre-line;
+    }
+    .note-box.kosong { color: var(--muted); font-style: italic; }
 
-        /* ===== TABLE ===== */
-        .table-card {
-            background: #FFFFFF;
-            border-radius: 16px;
-            overflow: hidden;
-            box-shadow: 0 1px 4px rgba(0, 51, 102, 0.06);
-            border: 1px solid #e2eaf3;
-        }
+    .act textarea {
+      width: 100%;
+      min-height: 72px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      background: var(--tint-bg);
+      font-size: 13px;
+      color: var(--navy);
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+    .act textarea::placeholder { color: var(--muted); }
+    .act textarea:focus { border-color: var(--blue); background: #fff; box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1); }
+    .act textarea.invalid { border-color: var(--red); background: var(--red-l); }
 
-        .table-wrapper {
-            overflow-x: auto;
-        }
+    .act .hint { font-size: 12px; color: var(--red-d); margin-top: 4px; min-height: 0; }
+    .act .hint:empty { display: none; }
 
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
+    .act-btns { display: flex; gap: 8px; margin-top: 10px; }
 
-        thead {
-            background: linear-gradient(135deg, #003366 0%, #0056B3 100%);
-        }
+    .btn-approve,
+    .btn-reject {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 12px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-approve svg, .btn-reject svg { width: 14px; height: 14px; stroke-width: 2.5; }
 
-        thead th {
-            padding: 16px 20px;
-            color: #FFFFFF;
-            font-size: 13px;
-            font-weight: 600;
-            text-align: left;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            white-space: nowrap;
-        }
+    .btn-approve { border: none; background: var(--blue); color: #fff; }
+    .btn-approve:hover { background: var(--navy2); box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25); }
 
-        tbody tr {
-            border-bottom: 1px solid #edf2f7;
-            transition: background 0.15s ease;
-        }
+    .btn-reject { border: 1px solid var(--red-b); background: #fff; color: var(--red-d); }
+    .btn-reject:hover { background: var(--red-l); border-color: var(--red); }
 
-        tbody tr:last-child {
-            border-bottom: none;
-        }
+    /* ── Kosong ── */
+    .empty {
+      padding: 56px 20px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 14px;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+    .empty svg { width: 44px; height: 44px; stroke-width: 1.5; color: #c0d4e8; margin-bottom: 10px; }
+    .empty b { display: block; color: var(--navy); font-size: 15px; margin-bottom: 4px; }
 
-        tbody tr:hover {
-            background: #f7fafd;
-        }
+    /* ── Tampilan foto besar ── */
+    .lightbox {
+      max-width: min(92vw, 1000px);
+      max-height: 92vh;
+      padding: 0;
+      border: none;
+      border-radius: 14px;
+      background: #0b1b30;
+      overflow: hidden;
+      margin: auto;
+    }
+    .lightbox::backdrop { background: rgba(0, 20, 45, 0.75); backdrop-filter: blur(3px); }
+    .lightbox img { display: block; max-width: min(92vw, 1000px); max-height: calc(92vh - 52px); margin: 0 auto; object-fit: contain; }
 
-        tbody td {
-            padding: 18px 20px;
-            font-size: 14px;
-            color: #003366;
-            vertical-align: top;
-        }
+    .lb-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 14px;
+      color: #fff;
+      font-size: 13px;
+    }
+    .lb-bar a { color: var(--sky); font-weight: 600; margin-left: auto; }
+    .lb-close {
+      width: 30px;
+      height: 30px;
+      border: none;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .lb-close:hover { background: rgba(255, 255, 255, 0.22); }
+    .lb-close svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; }
 
-        /* ===== STATUS BADGE ===== */
-        .badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
+    @media (max-width: 900px) {
+      .j-card { grid-template-columns: 80px 1fr; }
+      .j-side { grid-column: 1 / -1; border-left: none; border-top: 1px solid var(--border); }
+    }
 
-        .badge-pending {
-            background: #fff3e0;
-            color: #e65100;
-            border: 1px solid #ffe0b2;
-        }
-
-        .badge-approved {
-            background: #e8f5e9;
-            color: #2e7d32;
-            border: 1px solid #c8e6c9;
-        }
-
-        .badge-rejected {
-            background: #ffebee;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-        }
-
-        .badge-done {
-            background: #e8f0fe;
-            color: #0056B3;
-            border: 1px solid #c5d9f2;
-        }
-
-        /* ===== ACTION FORMS ===== */
-        .action-cell {
-            min-width: 260px;
-        }
-
-        .action-form {
-            margin-bottom: 10px;
-        }
-
-        .action-form:last-child {
-            margin-bottom: 0;
-        }
-
-        .action-form textarea {
-            width: 100%;
-            min-height: 60px;
-            padding: 10px 14px;
-            border: 1px solid #d0ddef;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            color: #003366;
-            resize: vertical;
-            transition: border-color 0.2s ease;
-            background: #f7fafd;
-        }
-
-        .action-form textarea:focus {
-            outline: none;
-            border-color: #007BFF;
-            background: #FFFFFF;
-            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
-        }
-
-        .action-form textarea::placeholder {
-            color: #95afc7;
-        }
-
-        .btn-approve {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            background: #007BFF;
-            color: #FFFFFF;
-            border: none;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 8px;
-        }
-
-        .btn-approve:hover {
-            background: #0056B3;
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.25);
-        }
-
-        .btn-reject {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 8px 16px;
-            background: #FFFFFF;
-            color: #c62828;
-            border: 1px solid #ffcdd2;
-            border-radius: 8px;
-            font-family: 'Inter', sans-serif;
-            font-size: 13px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            margin-top: 8px;
-        }
-
-        .btn-reject:hover {
-            background: #ffebee;
-            border-color: #ef9a9a;
-            transform: translateY(-1px);
-        }
-
-        .validated-text {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 13px;
-            font-weight: 500;
-            color: #2e7d32;
-        }
-
-        .divider-line {
-            border: none;
-            border-top: 1px dashed #d0ddef;
-            margin: 10px 0;
-        }
-
-        /* ===== RESPONSIVE ===== */
-        @media (max-width: 768px) {
-            .navbar {
-                padding: 0 20px;
-                height: 60px;
-            }
-
-            .navbar-title {
-                font-size: 15px;
-            }
-
-            .navbar-subtitle {
-                display: none;
-            }
-
-            .main-content {
-                padding: 20px 16px 40px;
-            }
-
-            .page-title {
-                font-size: 20px;
-            }
-
-            thead th {
-                padding: 12px 14px;
-                font-size: 12px;
-            }
-
-            tbody td {
-                padding: 14px;
-                font-size: 13px;
-            }
-        }
-    </style>
+    @media (max-width: 560px) {
+      .thumb { width: 100%; height: 180px; }
+    }
+  </style>
 </head>
 
 <body>
 
-    <!-- NAVBAR -->
-    <nav class="navbar">
-        <div class="navbar-brand">
-            <div class="navbar-logo">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
-                </svg>
-            </div>
-            <div>
-                <div class="navbar-title">Sistem Jurnal Magang</div>
-                <div class="navbar-subtitle">Diskominfo Wonogiri</div>
-            </div>
-        </div>
-    </nav>
+  <?= view('partials/topbar', ['pageTitle' => 'Validasi Jurnal']) ?>
 
-    <!-- MAIN CONTENT -->
-    <div class="main-content">
+  <div class="shell">
+    <main class="main">
+      <div class="content">
 
         <div class="page-header">
-            <h1 class="page-title">Validasi Jurnal Mahasiswa</h1>
-            <a href="/dashboard" class="btn-back">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polyline points="15 18 9 12 15 6" />
-                </svg>
-                Kembali ke Dashboard
-            </a>
+          <div>
+            <div class="page-eyebrow">Validasi Jurnal</div>
+            <h2 class="page-title"><?= $satuMahasiswa ? esc($satuMahasiswa) : 'Jurnal Mahasiswa' ?></h2>
+            <p class="page-sub">
+              <?= $jumlah['all'] ?> jurnal ·
+              <?= $jumlah['pending'] > 0 ? $jumlah['pending'] . ' menunggu persetujuan' : 'semua sudah ditinjau' ?>
+            </p>
+          </div>
+          <a href="<?= base_url('dashboard') ?>" class="btn-outline">
+            <svg viewBox="0 0 24 24">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+            Kembali ke Dashboard
+          </a>
         </div>
 
-        <div class="table-card">
-            <div class="table-wrapper">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nama Mahasiswa</th>
-                            <th>Tanggal</th>
-                            <th>Deskripsi</th>
-                            <th>Status</th>
-                            <th>Catatan Mentor</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($journals as $j): ?>
-                            <tr>
-                                <td><strong><?= esc($j['nama_mahasiswa']) ?></strong></td>
-                                <td><?= esc($j['tanggal']) ?></td>
-                                <td><?= esc($j['deskripsi']) ?></td>
-                                <td>
-                                    <?php if ($j['status'] == 'pending'): ?>
-                                        <span class="badge badge-pending">Pending</span>
-                                    <?php elseif ($j['status'] == 'approved'): ?>
-                                        <span class="badge badge-approved">Disetujui</span>
-                                    <?php else: ?>
-                                        <span class="badge badge-rejected">Ditolak</span>
-                                    <?php endif ?>
-                                </td>
-                                <td><?= esc($j['mentor_note'] ?? '-') ?></td>
-                                <td class="action-cell">
-                                    <?php if ($j['status'] == 'pending'): ?>
+        <?php if (empty($journals)): ?>
+          <div class="empty">
+            <svg viewBox="0 0 24 24">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+              <polyline points="14 2 14 8 20 8" />
+            </svg>
+            <b>Belum ada jurnal</b>
+            Mahasiswa ini belum mengisi jurnal kegiatan.
+          </div>
+        <?php else: ?>
 
-                                        <!-- APPROVE -->
-                                        <form action="/mentor/journal/approve/<?= $j['id'] ?>" method="post" class="action-form">
-                                            <?= csrf_field() ?>
-                                            <textarea name="mentor_note" placeholder="Catatan mentor jika disetujui..."></textarea>
-                                            <button type="submit" class="btn-approve">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                                    <polyline points="20 6 9 17 4 12" />
-                                                </svg>
-                                                Setujui
-                                            </button>
-                                        </form>
+          <div class="tabs" role="tablist">
+            <button type="button" class="tab<?= $jumlah['pending'] > 0 ? ' active' : '' ?>" data-filter="pending">Menunggu <span class="n"><?= $jumlah['pending'] ?></span></button>
+            <button type="button" class="tab<?= $jumlah['pending'] > 0 ? '' : ' active' ?>" data-filter="all">Semua <span class="n"><?= $jumlah['all'] ?></span></button>
+            <button type="button" class="tab" data-filter="approved">Disetujui <span class="n"><?= $jumlah['approved'] ?></span></button>
+            <button type="button" class="tab" data-filter="rejected">Ditolak <span class="n"><?= $jumlah['rejected'] ?></span></button>
+          </div>
 
-                                        <hr class="divider-line">
+          <div class="j-list" id="j-list">
+            <?php foreach ($journals as $j): ?>
+              <?php
+              $ts     = strtotime($j['tanggal']);
+              $status = $statusInfo[$j['status']] ?? [ucfirst($j['status']), 'badge-pending'];
+              $urlFoto = ! empty($j['bukti']) ? base_url('journal/bukti/' . (int) $j['id']) : null;
+              ?>
+              <article class="j-card<?= $j['status'] === 'pending' ? ' is-pending' : '' ?>" data-status="<?= esc($j['status'], 'attr') ?>">
 
-                                        <!-- REJECT -->
-                                        <form action="/mentor/journal/reject/<?= $j['id'] ?>" method="post" class="action-form">
-                                            <?= csrf_field() ?>
-                                            <textarea name="mentor_note" placeholder="Alasan penolakan..."></textarea>
-                                            <button type="submit" class="btn-reject">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                                                    <line x1="18" y1="6" x2="6" y2="18" />
-                                                    <line x1="6" y1="6" x2="18" y2="18" />
-                                                </svg>
-                                                Tolak
-                                            </button>
-                                        </form>
+                <div class="j-date">
+                  <div class="hari"><?= $ts ? $namaHari[(int) date('w', $ts)] : '' ?></div>
+                  <div class="tgl"><?= $ts ? date('j', $ts) : '–' ?></div>
+                  <div class="bln"><?= $ts ? $namaBulan[(int) date('n', $ts)] . ' ' . date('Y', $ts) : esc($j['tanggal']) ?></div>
+                </div>
 
-                                    <?php else: ?>
-                                        <span class="validated-text">
-                                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                                <polyline points="22 4 12 14.01 9 11.01" />
-                                            </svg>
-                                            Sudah divalidasi
-                                        </span>
-                                    <?php endif ?>
-                                </td>
-                            </tr>
-                        <?php endforeach ?>
-                    </tbody>
-                </table>
-            </div>
-        </div>
+                <div class="j-body">
+                  <?php if (! $satuMahasiswa): ?>
+                    <div class="j-name"><?= esc($j['nama_mahasiswa']) ?></div>
+                  <?php endif; ?>
+                  <div class="j-desc"><?= esc($j['deskripsi']) ?></div>
 
+                  <div class="j-bukti">
+                    <div class="j-label">Foto Bukti</div>
+                    <?php if ($urlFoto): ?>
+                      <button type="button" class="thumb"
+                        data-foto="<?= esc($urlFoto, 'attr') ?>"
+                        data-caption="<?= esc(($j['nama_mahasiswa'] ?? '') . ' · ' . ($ts ? $namaHari[(int) date('w', $ts)] . ', ' . date('j', $ts) . ' ' . $namaBulan[(int) date('n', $ts)] . ' ' . date('Y', $ts) : $j['tanggal']), 'attr') ?>"
+                        aria-label="Perbesar foto bukti">
+                        <img src="<?= esc($urlFoto, 'attr') ?>" alt="Foto bukti kegiatan" loading="lazy">
+                        <span class="zoom">
+                          <svg viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            <line x1="11" y1="8" x2="11" y2="14" />
+                            <line x1="8" y1="11" x2="14" y2="11" />
+                          </svg>
+                          Perbesar
+                        </span>
+                      </button>
+                    <?php else: ?>
+                      <span class="no-bukti">
+                        <svg viewBox="0 0 24 24">
+                          <rect x="3" y="3" width="18" height="18" rx="2" />
+                          <circle cx="8.5" cy="8.5" r="1.5" />
+                          <polyline points="21 15 16 10 5 21" />
+                        </svg>
+                        Tidak ada foto bukti
+                      </span>
+                    <?php endif; ?>
+                  </div>
+                </div>
+
+                <div class="j-side">
+                  <span class="badge <?= $status[1] ?>"><?= $status[0] ?></span>
+
+                  <?php if ($j['status'] === 'pending'): ?>
+                    <form class="act" method="post" action="<?= base_url('mentor/journal/approve/' . (int) $j['id']) ?>">
+                      <?= csrf_field() ?>
+                      <label class="j-label" for="note-<?= (int) $j['id'] ?>">Catatan Mentor</label>
+                      <textarea id="note-<?= (int) $j['id'] ?>" name="mentor_note" placeholder="Opsional saat menyetujui, wajib saat menolak..."></textarea>
+                      <div class="hint"></div>
+                      <div class="act-btns">
+                        <button type="submit" class="btn-approve">
+                          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12" /></svg>
+                          Setujui
+                        </button>
+                        <button type="submit" class="btn-reject" data-reject
+                          formaction="<?= base_url('mentor/journal/reject/' . (int) $j['id']) ?>">
+                          <svg viewBox="0 0 24 24">
+                            <line x1="18" y1="6" x2="6" y2="18" />
+                            <line x1="6" y1="6" x2="18" y2="18" />
+                          </svg>
+                          Tolak
+                        </button>
+                      </div>
+                    </form>
+                  <?php else: ?>
+                    <div>
+                      <div class="j-label">Catatan Mentor</div>
+                      <?php if (! empty($j['mentor_note'])): ?>
+                        <div class="note-box"><?= esc($j['mentor_note']) ?></div>
+                      <?php else: ?>
+                        <div class="note-box kosong">Tanpa catatan</div>
+                      <?php endif; ?>
+                    </div>
+                  <?php endif; ?>
+                </div>
+
+              </article>
+            <?php endforeach; ?>
+          </div>
+
+          <div class="empty" id="no-result" hidden>
+            <svg viewBox="0 0 24 24">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+              <polyline points="22 4 12 14.01 9 11.01" />
+            </svg>
+            <b id="no-result-title">Tidak ada jurnal</b>
+            <span id="no-result-text"></span>
+          </div>
+
+        <?php endif; ?>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- Tampilan foto besar -->
+  <dialog class="lightbox" id="lightbox" aria-label="Foto bukti">
+    <img id="lb-img" src="" alt="Foto bukti kegiatan">
+    <div class="lb-bar">
+      <span id="lb-caption"></span>
+      <a id="lb-open" href="#" target="_blank" rel="noopener">Buka ukuran asli</a>
+      <button type="button" class="lb-close" id="lb-close" aria-label="Tutup">
+        <svg viewBox="0 0 24 24">
+          <line x1="18" y1="6" x2="6" y2="18" />
+          <line x1="6" y1="6" x2="18" y2="18" />
+        </svg>
+      </button>
     </div>
+  </dialog>
+
+  <script>
+    (function () {
+      // ── Filter status ──
+      const cards = [...document.querySelectorAll('.j-card')];
+      const tabs  = [...document.querySelectorAll('.tab')];
+      const noRes = document.getElementById('no-result');
+      const pesan = {
+        pending:  ['Tidak ada yang menunggu', 'Semua jurnal mahasiswa ini sudah kamu tinjau.'],
+        approved: ['Belum ada yang disetujui', ''],
+        rejected: ['Tidak ada yang ditolak', ''],
+      };
+
+      function setFilter(f) {
+        let shown = 0;
+        cards.forEach(c => {
+          const v = f === 'all' || c.dataset.status === f;
+          c.hidden = !v;
+          if (v) shown++;
+        });
+        tabs.forEach(t => t.classList.toggle('active', t.dataset.filter === f));
+        if (noRes) {
+          noRes.hidden = shown > 0;
+          const [judul, teks] = pesan[f] || ['Tidak ada jurnal', ''];
+          document.getElementById('no-result-title').textContent = judul;
+          document.getElementById('no-result-text').textContent = teks;
+        }
+      }
+
+      tabs.forEach(t => t.addEventListener('click', () => setFilter(t.dataset.filter)));
+      const awal = tabs.find(t => t.classList.contains('active'));
+      if (awal) setFilter(awal.dataset.filter);
+
+      // ── Menolak wajib disertai alasan ──
+      document.querySelectorAll('[data-reject]').forEach(btn => {
+        btn.addEventListener('click', e => {
+          const form = btn.closest('form');
+          const note = form.querySelector('textarea');
+          const hint = form.querySelector('.hint');
+          if (note.value.trim() === '') {
+            e.preventDefault();
+            note.classList.add('invalid');
+            hint.textContent = 'Tuliskan alasan penolakan agar mahasiswa tahu apa yang perlu diperbaiki.';
+            note.focus();
+          }
+        });
+      });
+      document.querySelectorAll('.act textarea').forEach(t => t.addEventListener('input', () => {
+        t.classList.remove('invalid');
+        t.closest('form').querySelector('.hint').textContent = '';
+      }));
+
+      // ── Tampilan foto besar ──
+      const lb = document.getElementById('lightbox');
+      const lbImg = document.getElementById('lb-img');
+      document.querySelectorAll('.thumb').forEach(btn => btn.addEventListener('click', () => {
+        lbImg.src = btn.dataset.foto;
+        document.getElementById('lb-caption').textContent = btn.dataset.caption;
+        document.getElementById('lb-open').href = btn.dataset.foto;
+        lb.showModal();
+      }));
+      document.getElementById('lb-close').addEventListener('click', () => lb.close());
+      lb.addEventListener('click', e => { if (e.target === lb) lb.close(); });
+    })();
+  </script>
 
 </body>
 
