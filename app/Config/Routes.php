@@ -69,6 +69,21 @@ $routes->group('journal', ['filter' => ['auth', 'role:mahasiswa']], function ($r
 });
 
 // =======================
+// ADMIN
+// Akun admin dibuat lewat: php spark db:seed AdminSeeder
+// =======================
+$routes->group('admin', ['filter' => ['auth', 'role:admin']], function ($routes) {
+    $routes->get('/', 'AdminController::index');
+    $routes->get('mahasiswa', 'AdminController::mahasiswa');
+    $routes->get('mentor', 'AdminController::mentor');
+
+    $routes->post('mentor/verifikasi/(:num)', 'AdminController::verifikasi/$1');
+    $routes->post('mahasiswa/pembimbing/(:num)', 'AdminController::setPembimbing/$1');
+    $routes->post('akun/reset-password/(:num)', 'AdminController::resetPassword/$1');
+    $routes->post('akun/hapus/(:num)', 'AdminController::hapus/$1');
+});
+
+// =======================
 // MENTOR
 // =======================
 $routes->group('mentor', ['filter' => ['auth', 'role:mentor']], function ($routes) {

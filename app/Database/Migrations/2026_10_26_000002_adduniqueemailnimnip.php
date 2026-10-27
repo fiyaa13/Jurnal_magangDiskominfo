@@ -13,6 +13,14 @@ use CodeIgniter\Database\Migration;
  */
 class AddUniqueEmailNimNip extends Migration
 {
+    /**
+     * Tipe lebih spesifik agar editor (Intelephense) mengenali method seperti
+     * fieldExists() dan protectIdentifiers(). Tidak mengubah perilaku.
+     *
+     * @var \CodeIgniter\Database\BaseConnection
+     */
+    protected $db;
+
     private array $indexes = [
         'users'              => ['users_email_unique', 'email'],
         'mahasiswa_profiles' => ['mahasiswa_profiles_nim_unique', 'nim'],

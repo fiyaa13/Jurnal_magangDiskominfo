@@ -15,6 +15,7 @@ $profileFields = [
     'asal_universitas' => 'Asal Universitas',
     'bidang_magang'    => 'Bidang Magang',
     'periode_magang'   => 'Periode Magang',
+    'pembimbing'       => 'Pembimbing Lapangan',
 ];
 ?>
 <!DOCTYPE html>
@@ -174,6 +175,7 @@ $profileFields = [
     }
 
     .profile-card .val { font-size: 15px; font-weight: 600; }
+    .profile-card li:last-child:nth-child(odd) { grid-column: 1 / -1; }
 
     /* Empty state */
     .empty-state {

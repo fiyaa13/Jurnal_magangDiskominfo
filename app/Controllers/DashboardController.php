@@ -15,6 +15,11 @@ class DashboardController extends BaseController
             return redirect()->to('/login');
         }
 
+        // ================= ADMIN → halaman admin =================
+        if (session()->get('role') === 'admin') {
+            return redirect()->to('/admin');
+        }
+
         // ================= DASHBOARD MENTOR =================
         if (session()->get('role') === 'mentor') {
 
@@ -32,6 +37,11 @@ class DashboardController extends BaseController
             // 🔹 Daftar mahasiswa + NIM + jumlah jurnal per status.
             //    Mahasiswa yang punya jurnal menunggu persetujuan tampil paling atas.
             $profileTable = (new MahasiswaProfileModel())->builder()->getTable();
+
+            // Mentor hanya melihat mahasiswa bimbingannya (diatur admin)
+            if (db_connect()->fieldExists('mentor_id', $profileTable)) {
+                $userModel->where("{$profileTable}.mentor_id", session()->get('id'));
+            }
 
             $mahasiswa = $userModel
                 ->select("users.id, users.name, {$profileTable}.nim,
@@ -71,6 +81,14 @@ class DashboardController extends BaseController
         $profile = (new MahasiswaProfileModel())
             ->where('user_id', $userId)
             ->first();
+
+        // Nama pembimbing lapangan (diatur admin)
+        if ($profile) {
+            $pembimbing = ! empty($profile['mentor_id'])
+                ? (new UserModel())->find($profile['mentor_id'])
+                : null;
+            $profile['pembimbing'] = $pembimbing['name'] ?? 'Belum ditentukan';
+        }
 
         $journalModel = new JournalModel();
 

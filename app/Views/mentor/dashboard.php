@@ -505,7 +505,7 @@ $tglPendek = static function (?string $tgl) use ($namaBulan): string {
                   <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
                   <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                 </svg></span>
-              Daftar Mahasiswa Magang
+              Mahasiswa Bimbingan
             </div>
             <span class="count" id="mhs-count"><?= count($mahasiswa) ?> mahasiswa</span>
           </div>
@@ -518,8 +518,8 @@ $tglPendek = static function (?string $tgl) use ($namaBulan): string {
                 <line x1="19" y1="8" x2="19" y2="14" />
                 <line x1="22" y1="11" x2="16" y2="11" />
               </svg>
-              <b>Belum ada mahasiswa</b>
-              Mahasiswa magang akan muncul di sini setelah terdaftar.
+              <b>Belum ada mahasiswa bimbingan</b>
+              Admin akan menentukan mahasiswa yang kamu bimbing. Setelah itu mereka muncul di sini.
             </div>
           <?php else: ?>
 

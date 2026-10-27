@@ -223,9 +223,19 @@ class JournalController extends BaseController
         $journal = $this->journal->find($id);
         $role    = session()->get('role');
 
-        $bolehLihat = $journal
-            && ! empty($journal['bukti'])
-            && ($role === 'mentor' || ($role === 'mahasiswa' && $journal['user_id'] == session()->get('id')));
+        $bolehLihat = false;
+        if ($journal && ! empty($journal['bukti'])) {
+            if ($role === 'admin') {
+                $bolehLihat = true;
+            } elseif ($role === 'mahasiswa') {
+                $bolehLihat = $journal['user_id'] == session()->get('id');
+            } elseif ($role === 'mentor') {
+                // Mentor hanya boleh melihat foto mahasiswa bimbingannya
+                $profil     = (new MahasiswaProfileModel())->where('user_id', $journal['user_id'])->first();
+                $bolehLihat = ! array_key_exists('mentor_id', (array) $profil)
+                    || (int) ($profil['mentor_id'] ?? 0) === (int) session()->get('id');
+            }
+        }
 
         $path = $bolehLihat ? $this->buktiDir() . basename($journal['bukti']) : null;
 
@@ -265,10 +275,21 @@ class JournalController extends BaseController
             ->orderBy('tanggal', 'ASC')
             ->findAll();
 
+        // Pembimbing lapangan (diatur admin) untuk kolom tanda tangan
+        $pembimbing = null;
+        if (! empty($profile['mentor_id'])) {
+            $pembimbing = db_connect()->table('users u')
+                ->select('u.name AS nama, mp.nip')
+                ->join('mentor_profiles mp', 'mp.user_id = u.id', 'left')
+                ->where('u.id', $profile['mentor_id'])
+                ->get()->getRowArray();
+        }
+
         $html = view('journal/pdf', [
-            'profile'  => $profile,
-            'journals' => $journals,
-            'nama'     => session()->get('name'),
+            'profile'    => $profile,
+            'journals'   => $journals,
+            'nama'       => session()->get('name'),
+            'pembimbing' => $pembimbing,
         ]);
 
         $dompdf = new Dompdf();

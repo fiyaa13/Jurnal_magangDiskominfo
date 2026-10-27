@@ -55,6 +55,12 @@ class Auth extends BaseController
                 ->with('error', 'Email/NIM atau password salah.');
         }
 
+        // Mentor baru harus diverifikasi admin dulu
+        if ($user['role'] === 'mentor' && isset($user['is_verified']) && (int) $user['is_verified'] === 0) {
+            return redirect()->back()->withInput()
+                ->with('error', 'Akun mentor kamu masih menunggu verifikasi admin. Coba lagi setelah disetujui.');
+        }
+
         session()->regenerate();
         session()->set([
             'logged_in' => true,
@@ -219,12 +225,19 @@ class Auth extends BaseController
         $db->transBegin();
 
         try {
-            $userId = (new UserModel())->insert([
+            $akun = [
                 'name'     => $data['nama'],
                 'email'    => $data['email'],
                 'password' => password_hash($data['password'], PASSWORD_DEFAULT),
                 'role'     => 'mentor',
-            ]);
+            ];
+
+            // Mentor baru menunggu verifikasi admin
+            if ($db->fieldExists('is_verified', 'users')) {
+                $akun['is_verified'] = 0;
+            }
+
+            $userId = (new UserModel())->insert($akun);
 
             if (! $userId) {
                 throw new \RuntimeException($db->error()['message'] ?? 'Gagal menyimpan akun.');
@@ -253,7 +266,7 @@ class Auth extends BaseController
         }
 
         return redirect()->to('/login')
-            ->with('success', 'Registrasi mentor berhasil. Silakan login dengan email kamu.');
+            ->with('success', 'Registrasi mentor berhasil. Akun kamu bisa dipakai login setelah diverifikasi admin.');
     }
 
     /**
